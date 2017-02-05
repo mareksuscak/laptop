@@ -1,7 +1,7 @@
 Laptop
 ======
 
-Laptop is a script to set up an macOS laptop for web development.
+Laptop is a script to set up your macOS laptop for development.
 
 It can be run multiple times on the same machine safely.
 It installs, upgrades, or skips packages
@@ -12,36 +12,29 @@ Requirements
 
 We support:
 
-* macOS Mavericks (10.9)
-* macOS Yosemite (10.10)
-* macOS El Capitan (10.11)
+* macOS Sierra (10.12)
 
-Older versions may work but aren't regularly tested. Bug reports for older
-versions are welcome.
+Older versions may work but aren't regularly tested.
 
 Install
 -------
 
-Download, review, then execute the script:
+Execute the script:
 
 ```sh
-curl --remote-name https://raw.githubusercontent.com/thoughtbot/laptop/master/mac
-less mac
-sh mac 2>&1 | tee ~/laptop.log
+\curl -sSL https://raw.githubusercontent.com/mareksuscak/laptop/master/mac | sh -s 2>&1 | tee ~/laptop.log
 ```
 
-Optionally, [install thoughtbot/dotfiles][dotfiles].
+It should take less than 15 minutes to install (depends on your machine).
 
-[dotfiles]: https://github.com/thoughtbot/dotfiles#install
+Optionally, [install mareksuscak/dotfiles][dotfiles].
+
+[dotfiles]: https://github.com/mareksuscak/dotfiles#install
 
 Debugging
 ---------
 
 Your last Laptop run will be saved to `~/laptop.log`.
-Read through it to see if you can debug the issue yourself.
-If not, copy the lines where the script failed into a
-[new GitHub Issue](https://github.com/thoughtbot/laptop/issues/new) for us.
-Or, attach the whole log file as an attachment.
 
 What it sets up
 ---------------
@@ -172,11 +165,10 @@ can be used in your `~/.laptop.local`.
 See the [wiki](https://github.com/thoughtbot/laptop/wiki)
 for more customization examples.
 
-Contributing
+Development
 ------------
 
-Edit the `mac` file.
-Document in the `README.md` file.
+Keep everything in the `mac` file.
 Follow shell style guidelines by using [ShellCheck] and [Syntastic].
 
 ```sh
@@ -186,35 +178,12 @@ brew install shellcheck
 [ShellCheck]: http://www.shellcheck.net/about.html
 [Syntastic]: https://github.com/scrooloose/syntastic
 
-Thank you, [contributors]!
-
-[contributors]: https://github.com/thoughtbot/laptop/graphs/contributors
-
-By participating in this project,
-you agree to abide by the thoughtbot [code of conduct].
-
-[code of conduct]: https://thoughtbot.com/open-source-code-of-conduct
 
 License
 -------
 
-Laptop is © 2011-2017 thoughtbot, inc.
+Laptop is © 2017 Marek Suscak
 It is free software,
 and may be redistributed under the terms specified in the [LICENSE] file.
 
 [LICENSE]: LICENSE
-
-About thoughtbot
-----------------
-
-![thoughtbot](https://thoughtbot.com/logo.png)
-
-Laptop is maintained and funded by thoughtbot, inc.
-The names and logos for thoughtbot are trademarks of thoughtbot, inc.
-
-We are passionate about open source software.
-See [our other projects][community].
-We are [available for hire][hire].
-
-[community]: https://thoughtbot.com/community?utm_source=github
-[hire]: https://thoughtbot.com?utm_source=github

@@ -1,18 +1,18 @@
 #!/bin/sh
 
-# Welcome to the thoughtbot laptop script!
-# Be prepared to turn your laptop (or desktop, no haters here)
-# into an awesome development machine.
-
 fancy_echo() {
+  # shellcheck disable=SC2039
   local fmt="$1"; shift
 
   # shellcheck disable=SC2059
   printf "\n$fmt\n" "$@"
 }
 
-append_to_zshrc() {
+append_to_profile() {
+  # shellcheck disable=SC2039
   local text="$1" zshrc
+
+  # shellcheck disable=SC2039
   local skip_new_line="${2:-0}"
 
   if [ -w "$HOME/.zshrc.local" ]; then
@@ -30,10 +30,21 @@ append_to_zshrc() {
   fi
 }
 
+cond() {
+  if [ "$1" ] ; then
+    printf "%s" "$2"
+  else
+    printf "%s" "$3"
+  fi
+}
+
 # shellcheck disable=SC2154
 trap 'ret=$?; test $ret -ne 0 && printf "failed\n\n" >&2; exit $ret' EXIT
 
 set -e
+
+fancy_echo "Installing updates from the App Store..."
+softwareupdate -i -a
 
 if [ ! -d "$HOME/.bin/" ]; then
   mkdir "$HOME/.bin"
@@ -44,48 +55,33 @@ if [ ! -f "$HOME/.zshrc" ]; then
 fi
 
 # shellcheck disable=SC2016
-append_to_zshrc 'export PATH="$HOME/.bin:$PATH"'
+append_to_profile 'export PATH="$HOME/.bin:$PATH"'
 
-HOMEBREW_PREFIX="/usr/local"
+HOMEBREW_PREFIX=$(cond "$(command -v brew >/dev/null)" "$(brew --prefix)" "/usr/local")
 
 if [ -d "$HOMEBREW_PREFIX" ]; then
   if ! [ -r "$HOMEBREW_PREFIX" ]; then
-    sudo chown -R "$LOGNAME:admin" /usr/local
+    sudo chown -R "$USER:admin" "$HOMEBREW_PREFIX"
   fi
 else
   sudo mkdir "$HOMEBREW_PREFIX"
   sudo chflags norestricted "$HOMEBREW_PREFIX"
-  sudo chown -R "$LOGNAME:admin" "$HOMEBREW_PREFIX"
+  sudo chown -R "$USER:admin" "$HOMEBREW_PREFIX"
 fi
-
-case "$SHELL" in
-  */zsh) : ;;
-  *)
-    fancy_echo "Changing your shell to zsh ..."
-      chsh -s "$(which zsh)"
-    ;;
-esac
-
-gem_install_or_update() {
-  if gem list "$1" --installed > /dev/null; then
-    gem update "$@"
-  else
-    gem install "$@"
-    rbenv rehash
-  fi
-}
 
 if ! command -v brew >/dev/null; then
   fancy_echo "Installing Homebrew ..."
-    curl -fsS \
-      'https://raw.githubusercontent.com/Homebrew/install/master/install' | ruby
 
-    append_to_zshrc '# recommended by brew doctor'
+  curl -fsSL \
+    'https://raw.githubusercontent.com/Homebrew/install/master/install' | ruby
 
-    # shellcheck disable=SC2016
-    append_to_zshrc 'export PATH="/usr/local/bin:$PATH"' 1
+  append_to_profile '# recommended by brew doctor'
 
-    export PATH="/usr/local/bin:$PATH"
+  # shellcheck disable=SC2016
+  append_to_profile "export PATH=\"$HOMEBREW_PREFIX/bin:\$PATH\"" 1
+
+  export PATH
+  PATH="$HOMEBREW_PREFIX/bin:$PATH"
 fi
 
 if brew list | grep -Fq brew-cask; then
@@ -109,6 +105,8 @@ brew "the_silver_searcher"
 brew "tmux"
 brew "vim"
 brew "zsh"
+brew "httpie"
+brew "htop"
 
 # Heroku
 brew "heroku-toolbelt"
@@ -116,44 +114,190 @@ brew "parity"
 
 # GitHub
 brew "hub"
+cask "github-desktop"
 
 # Image manipulation
 brew "imagemagick"
-
-# Testing
-brew "qt"
-
-# Programming languages
-brew "libyaml" # should come after openssl
-brew "node"
-brew "rbenv"
-brew "ruby-build"
+cask "imageoptim"
 
 # Databases
 brew "postgres", restart_service: true
 brew "redis", restart_service: true
+cask "postico"
+
+# Browsers
+cask "google-chrome"
+cask "firefox"
+
+# Terminal
+brew "tmate" # alternatively brew "teleconsole"
+cask "iterm2" # alternatively brew "hyper"
+
+# Documents
+mas "Keynote", id: 409183694
+mas "Numbers", id: 409203825
+mas "Pages", id: 409201541
+
+# Other Apps
+cask "alfred"
+cask "atom"
+cask "dropbox"
+cask "flux"
+mas "ForkLift", id: 412448059
+mas "Just Color Picker", id: 886547068
+cask "kap"
+cask "numi"
+cask "skype"
+cask "spectacle"
+cask "spotify"
+mas "The Unarchiver", id: 425424353
+cask "transmission"
+mas "Twitter", id: 409789998
+cask "vlc"
+mas "Wunderlist", id: 410628904
 EOF
 
-fancy_echo "Configuring Ruby ..."
-find_latest_ruby() {
-  rbenv install -l | grep -v - | tail -1 | sed -e 's/^ *//'
-}
+fancy_echo "Cleaning up old Homebrew formulae ..."
+brew cleanup
+brew cask cleanup
 
-ruby_version="$(find_latest_ruby)"
-# shellcheck disable=SC2016
-append_to_zshrc 'eval "$(rbenv init - --no-rehash)"' 1
-eval "$(rbenv init -)"
-
-if ! rbenv versions | grep -Fq "$ruby_version"; then
-  RUBY_CONFIGURE_OPTS=--with-openssl-dir=/usr/local/opt/openssl rbenv install -s "$ruby_version"
+fancy_echo "Changing your shell to zsh ..."
+if ! grep -Fqs "$HOMEBREW_PREFIX/bin/zsh" "/etc/shells"; then
+  printf "%s\n" "$HOMEBREW_PREFIX/bin/zsh" | sudo tee -a /etc/shells
 fi
 
-rbenv global "$ruby_version"
-rbenv shell "$ruby_version"
-gem update --system
-gem_install_or_update 'bundler'
-number_of_cores=$(sysctl -n hw.ncpu)
-bundle config --global jobs $((number_of_cores - 1))
+# TODO dscl . -read /Users/$USER/ UserShell
+case "$SHELL" in
+  */zsh) : ;;
+  *)
+    # TODO dscl . -create /Users/$USER UserShell "$HOMEBREW_PREFIX/bin/zsh"
+    chsh -s "$HOMEBREW_PREFIX/bin/zsh"
+    ;;
+esac
+
+# TODO:
+# Install Fonts (FiraCode)
+
+printf 'Install Ruby and related tools? (y/N) => '; read -r ruby
+if [ "$ruby" = "y" ] || [ "$ruby" = "Y" ] ; then
+  fancy_echo "Configuring Ruby ..."
+
+  find_latest_ruby() {
+    rbenv install -l | grep -v - | tail -1 | sed -e 's/^ *//'
+  }
+
+  gem_install_or_update() {
+    if gem list "$1" --installed > /dev/null; then
+      gem update "$@"
+    else
+      gem install "$@"
+      rbenv rehash
+    fi
+  }
+
+  brew install \
+    qt \
+    libyaml \
+    rbenv \
+    ruby-build
+
+  ruby_version="$(find_latest_ruby)"
+  # shellcheck disable=SC2016
+  append_to_profile 'eval "$(rbenv init - --no-rehash)"' 1
+  eval "$(rbenv init -)"
+
+  if ! rbenv versions | grep -Fq "$ruby_version"; then
+    RUBY_CONFIGURE_OPTS=--with-openssl-dir=$(brew --prefix openssl) rbenv install -s "$ruby_version"
+  fi
+
+  rbenv global "$ruby_version"
+  rbenv shell "$ruby_version"
+  gem update --system
+  gem_install_or_update 'bundler'
+  number_of_cores=$(sysctl -n hw.ncpu)
+  bundle config --global jobs $((number_of_cores - 1))
+
+  # TODO fix eventmachine builds
+  # bundle config build.eventmachine --with-cppflags=-I$(brew --prefix openssl)/include
+fi
+
+printf 'Install Node and related tools? (y/N) => '; read -r node
+if [ "$node" = "y" ] || [ "$node" = "Y" ] ; then
+  fancy_echo "Configuring Node ..."
+
+  find_latest_node_lts() {
+    nodenv install -l | grep -v - | grep "\d*[02468]*\d*[2468]\.[0-9]*\.[0-9]*" | tail -1 | sed -e 's/^ *//'
+  }
+
+  brew install watchman yarn nodenv
+
+  node_version="$(find_latest_node_lts)"
+  # shellcheck disable=SC2016
+  append_to_profile 'eval "$(nodenv init - --no-rehash)"' 1
+  eval "$(nodenv init -)"
+
+  if ! nodenv versions | grep -Fq "$node_version"; then
+    nodenv install -s "$ruby_version"
+  fi
+
+  nodenv global "$node_version"
+  nodenv shell "$node_version"
+  npm install npm@latest -g
+fi
+
+printf 'Install Elixir and related tools? (y/N) => '; read -r elixir
+if [ "$elixir" = "y" ] || [ "$elixir" = "Y" ] ; then
+  fancy_echo "Configuring Elixir ..."
+
+  brew install elixir
+  mix local.hex
+  mix archive.install https://github.com/phoenixframework/archives/raw/master/phoenix_new.ez
+fi
+
+printf 'Install Atom packages? (y/N) => '; read -r atom
+if [ "$atom" = "y" ] || [ "$atom" = "Y" ] ; then
+  fancy_echo "Configuring Atom ..."
+  apm install \
+    advanced-open-file \
+    atom-beautify \
+    atom-handlebars \
+    atom-ternjs \
+    docblockr \
+    editorconfig \
+    emmet \
+    file-icons \
+    git-time-machine \
+    language-babel \
+    language-ejs \
+    language-elixir \
+    linter \
+    linter-eslint \
+    linter-stylelint \
+    pigments \
+    platformio-ide-terminal \
+    set-syntax \
+    vim-mode
+fi
+
+# shellcheck disable=SC2016
+printf 'Install dotfiles from `mareksuscak/dotfiles` now? (y/N) => '; read -r dotfiles
+if [ "$dotfiles" = "y" ] || [ "$dotfiles" = "Y" ] ; then
+
+  if [ ! -d "$HOME/.dotfiles/" ]; then
+    git clone https://github.com/mareksuscak/dotfiles ~/.dotfiles
+  fi
+
+  # TODO: pushd and popd are non existent in POSIX sh
+  # shellcheck disable=SC2039
+  pushd ~/.dotfiles
+  git reset HEAD --hard
+  git checkout master
+  git pull
+  # shellcheck disable=SC2039
+  popd
+
+  env RCRC="$HOME/.dotfiles/rcrc" rcup
+fi
 
 if [ -f "$HOME/.laptop.local" ]; then
   fancy_echo "Running your customizations from ~/.laptop.local ..."

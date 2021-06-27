@@ -46,16 +46,20 @@ fi
 # shellcheck disable=SC2016
 append_to_zshrc 'export PATH="$HOME/.bin:$PATH"'
 
-HOMEBREW_PREFIX="/usr/local"
+# arm64 or x86_64
+arch="$(uname -m)"
 
-if [ -d "$HOMEBREW_PREFIX" ]; then
-  if ! [ -r "$HOMEBREW_PREFIX" ]; then
-    sudo chown -R "$LOGNAME:admin" /usr/local
-  fi
+# Homebrew
+if [ "$arch" = "arm64" ]; then
+  BREW="/opt/homebrew"
 else
-  sudo mkdir "$HOMEBREW_PREFIX"
-  sudo chflags norestricted "$HOMEBREW_PREFIX"
-  sudo chown -R "$LOGNAME:admin" "$HOMEBREW_PREFIX"
+  BREW="/usr/local"
+fi
+
+if [ ! -d "$BREW" ]; then
+  sudo mkdir -p "$BREW"
+  sudo chflags norestricted "$BREW"
+  sudo chown -R "$LOGNAME:admin" "$BREW"
 fi
 
 update_shell() {
@@ -72,7 +76,7 @@ update_shell() {
 
 case "$SHELL" in
   */zsh)
-    if [ "$(command -v zsh)" != '/usr/local/bin/zsh' ] ; then
+    if [ "$(command -v zsh)" != '/opt/homebrew/bin/zsh' ] ; then
       update_shell
     fi
     ;;
@@ -94,12 +98,14 @@ if ! command -v brew >/dev/null; then
     curl -fsS \
       'https://raw.githubusercontent.com/Homebrew/install/master/install' | ruby
 
+    curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip 1 -C "$BREW"
+
     append_to_zshrc '# recommended by brew doctor'
 
     # shellcheck disable=SC2016
-    append_to_zshrc 'export PATH="/usr/local/bin:$PATH"' 1
+    append_to_zshrc 'export PATH="/opt/homebrew/bin:$PATH"' 1
 
-    export PATH="/usr/local/bin:$PATH"
+    export PATH="/opt/homebrew/bin:$PATH"
 fi
 
 if brew list | grep -Fq brew-cask; then

@@ -144,12 +144,12 @@ append_to_zshrc 'eval "$(mise activate zsh)"'
 export PATH="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:$PATH"
 
 fancy_echo "Installing latest Ruby ..."
-mise use --global ruby@latest
+mise use --global --pin ruby@latest
 number_of_cores=$(sysctl -n hw.ncpu)
 bundle config set --global jobs $((number_of_cores - 1))
 
 fancy_echo "Installing Node LTS ..."
-mise use --global node@lts
+mise use --global --pin node@lts
 
 if [ -f "$HOME/.laptop.local" ]; then
   fancy_echo "Running your customizations from ~/.laptop.local ..."

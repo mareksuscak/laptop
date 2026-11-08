@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+* Replace asdf with mise for managing Ruby and Node versions
+* Install the Node.js LTS release instead of the latest release
+
 ### Removed
 
 * Heroku CLI and the heroku/brew tap

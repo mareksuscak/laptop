@@ -126,6 +126,7 @@ brew "imagemagick"
 # Programming language prerequisites and package managers
 brew "libyaml" # should come after openssl
 brew "coreutils"
+brew "mise"
 brew "yarn"
 cask "gpg-suite-no-mail"
 
@@ -134,52 +135,21 @@ brew "postgresql@18", restart_service: :changed
 brew "redis", restart_service: :changed
 EOF
 
-fancy_echo "Configuring asdf version manager ..."
-if [ ! -d "$HOME/.asdf" ]; then
-  brew install asdf
-  # for future runs
-  # shellcheck disable=SC2016
-  append_to_zshrc 'export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"'
-  # for this session, so we don't need to restart the shell to do stuff with asdf
-  export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
-else
-  brew upgrade asdf
-fi
-
-alias install_asdf_plugin=add_or_update_asdf_plugin
-add_or_update_asdf_plugin() {
-  local name="$1"
-  local url="$2"
-
-  if ! asdf plugin list | grep -Fq "$name"; then
-    asdf plugin add "$name" "$url"
-  else
-    asdf plugin update "$name"
-  fi
-}
-
-# shellcheck disable=SC1091
-add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
-add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
-
-install_asdf_language() {
-  local language="$1"
-  local version
-  version="$(asdf list all "$language" | grep -v "[a-z]" | tr -s '\n' | tail -1)"
-
-  if ! asdf list "$language" | grep -Fq "$version"; then
-    asdf install "$language" "$version"
-    asdf set --home "$language" "$version"
-  fi
-}
+fancy_echo "Configuring mise version manager ..."
+# for future runs
+# shellcheck disable=SC2016
+append_to_zshrc 'eval "$(mise activate zsh)"'
+# for this run: `mise activate` relies on prompt hooks, which never fire in
+# this non-interactive script, so put mise's shims on PATH instead
+export PATH="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:$PATH"
 
 fancy_echo "Installing latest Ruby ..."
-install_asdf_language "ruby"
+mise use --global ruby@latest
 number_of_cores=$(sysctl -n hw.ncpu)
 bundle config set --global jobs $((number_of_cores - 1))
 
-fancy_echo "Installing latest Node ..."
-install_asdf_language "nodejs"
+fancy_echo "Installing Node LTS ..."
+mise use --global node@lts
 
 if [ -f "$HOME/.laptop.local" ]; then
   fancy_echo "Running your customizations from ~/.laptop.local ..."

@@ -99,9 +99,9 @@ Image tools:
 
 Programming languages, package managers, and configuration:
 
-* [asdf-vm] for managing programming language versions
+* [mise] for managing programming language versions
 * [Bundler] for managing Ruby libraries
-* [Node.js] and [npm], for running apps and installing JavaScript packages
+* [Node.js] LTS and [npm], for running apps and installing JavaScript packages
 * [Ruby] stable for writing general-purpose code
 * [Yarn] for managing JavaScript packages
 
@@ -109,7 +109,7 @@ Programming languages, package managers, and configuration:
 [ImageMagick]: http://www.imagemagick.org/
 [Node.js]: http://nodejs.org/
 [npm]: https://www.npmjs.org/
-[asdf-vm]: https://github.com/asdf-vm/asdf
+[mise]: https://mise.jdx.dev/
 [Ruby]: https://www.ruby-lang.org/en/
 [Yarn]: https://yarnpkg.com/en/
 

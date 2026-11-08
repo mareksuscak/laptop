@@ -4,6 +4,8 @@
 # Be prepared to turn your laptop (or desktop, no haters here)
 # into an awesome development machine.
 
+# shellcheck disable=SC3043
+
 fancy_echo() {
   local fmt="$1"; shift
 
@@ -46,20 +48,12 @@ fi
 # shellcheck disable=SC2016
 append_to_zshrc 'export PATH="$HOME/.bin:$PATH"'
 
-# arm64 or x86_64
+# Determine Homebrew prefix
 arch="$(uname -m)"
-
-# Homebrew
 if [ "$arch" = "arm64" ]; then
-  BREW="/opt/homebrew"
+  HOMEBREW_PREFIX="/opt/homebrew"
 else
-  BREW="/usr/local"
-fi
-
-if [ ! -d "$BREW" ]; then
-  sudo mkdir -p "$BREW"
-  sudo chflags norestricted "$BREW"
-  sudo chown -R "$LOGNAME:admin" "$BREW"
+  HOMEBREW_PREFIX="/usr/local"
 fi
 
 update_shell() {
@@ -76,7 +70,7 @@ update_shell() {
 
 case "$SHELL" in
   */zsh)
-    if [ "$(command -v zsh)" != '/opt/homebrew/bin/zsh' ] ; then
+    if [ "$(command -v zsh)" != "$HOMEBREW_PREFIX/bin/zsh" ] ; then
       update_shell
     fi
     ;;
@@ -84,6 +78,21 @@ case "$SHELL" in
     update_shell
     ;;
 esac
+
+# checks architecture
+if [ "$(uname -m)" = "arm64" ]
+  then
+  # checks if Rosetta is already installed
+  if ! pkgutil --pkg-info=com.apple.pkg.RosettaUpdateAuto > /dev/null 2>&1
+  then
+    echo "Installing Rosetta"
+    # Installs Rosetta2
+    softwareupdate --install-rosetta --agree-to-license
+  else
+    echo "Rosetta is installed"
+  fi
+fi
+
 
 gem_install_or_update() {
   if gem list "$1" --installed > /dev/null; then
@@ -95,14 +104,12 @@ gem_install_or_update() {
 
 if ! command -v brew >/dev/null; then
   fancy_echo "Installing Homebrew ..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    /bin/bash -c \
+      "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-    append_to_zshrc '# recommended by brew doctor'
+    append_to_zshrc "eval \"\$($HOMEBREW_PREFIX/bin/brew shellenv)\""
 
-    # shellcheck disable=SC2016
-    append_to_zshrc 'export PATH="/opt/homebrew/bin:$PATH"' 1
-
-    export PATH="/opt/homebrew/bin:$PATH"
+    export PATH="$HOMEBREW_PREFIX/bin:$PATH"
 fi
 
 if brew list | grep -Fq brew-cask; then
@@ -111,15 +118,13 @@ if brew list | grep -Fq brew-cask; then
 fi
 
 fancy_echo "Updating Homebrew formulae ..."
-brew update --force # https://github.com/Homebrew/brew/issues/1151
+brew update
 brew bundle --file=- <<EOF
-tap "thoughtbot/formulae"
-tap "homebrew/services"
-tap "universal-ctags/universal-ctags"
 tap "heroku/brew"
 
 # Unix
-brew "universal-ctags", args: ["HEAD"]
+brew "universal-ctags"
+brew "fzf"
 brew "git"
 brew "openssl"
 brew "rcm"
@@ -131,11 +136,10 @@ brew "watchman"
 brew "zsh"
 
 # Heroku
-brew "heroku/brew/heroku"
-brew "parity"
+brew "heroku/brew/heroku", trusted: true
 
 # GitHub
-brew "hub"
+brew "gh"
 
 # Image manipulation
 brew "imagemagick"
@@ -144,21 +148,23 @@ brew "imagemagick"
 brew "libyaml" # should come after openssl
 brew "coreutils"
 brew "yarn"
-cask "gpg-suite"
+cask "gpg-suite-no-mail"
 
 # Databases
-brew "postgres", restart_service: :changed
+brew "postgresql@18", restart_service: :changed
 brew "redis", restart_service: :changed
 EOF
 
-fancy_echo "Update heroku binary ..."
-brew unlink heroku
-brew link --force heroku
-
 fancy_echo "Configuring asdf version manager ..."
 if [ ! -d "$HOME/.asdf" ]; then
-  git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.5.0
-  append_to_zshrc "source $HOME/.asdf/asdf.sh" 1
+  brew install asdf
+  # for future runs
+  # shellcheck disable=SC2016
+  append_to_zshrc 'export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"'
+  # for this session, so we don't need to restart the shell to do stuff with asdf
+  export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
+else
+  brew upgrade asdf
 fi
 
 alias install_asdf_plugin=add_or_update_asdf_plugin
@@ -166,41 +172,39 @@ add_or_update_asdf_plugin() {
   local name="$1"
   local url="$2"
 
-  if ! asdf plugin-list | grep -Fq "$name"; then
-    asdf plugin-add "$name" "$url"
+  if ! asdf plugin list | grep -Fq "$name"; then
+    asdf plugin add "$name" "$url"
   else
-    asdf plugin-update "$name"
+    asdf plugin update "$name"
   fi
 }
 
-# shellcheck disable=SC1090
-source "$HOME/.asdf/asdf.sh"
+# shellcheck disable=SC1091
 add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
 add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
 
 install_asdf_language() {
   local language="$1"
   local version
-  version="$(asdf list-all "$language" | grep -v "[a-z]" | tail -1)"
+  version="$(asdf list all "$language" | grep -v "[a-z]" | tr -s '\n' | tail -1)"
 
   if ! asdf list "$language" | grep -Fq "$version"; then
     asdf install "$language" "$version"
-    asdf global "$language" "$version"
+    asdf set --home "$language" "$version"
   fi
 }
 
 fancy_echo "Installing latest Ruby ..."
 install_asdf_language "ruby"
-gem update --system
 number_of_cores=$(sysctl -n hw.ncpu)
-bundle config --global jobs $((number_of_cores - 1))
+bundle config set --global jobs $((number_of_cores - 1))
+gem_install_or_update "parity"
 
 fancy_echo "Installing latest Node ..."
-bash "$HOME/.asdf/plugins/nodejs/bin/import-release-team-keyring"
 install_asdf_language "nodejs"
 
 if [ -f "$HOME/.laptop.local" ]; then
   fancy_echo "Running your customizations from ~/.laptop.local ..."
-  # shellcheck disable=SC1090
+  # shellcheck disable=SC1091
   . "$HOME/.laptop.local"
 fi

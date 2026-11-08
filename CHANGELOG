@@ -1,0 +1,72 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [Unreleased]
+
+## 2026-08-13
+
+### Fixed
+
+* Install heroku cli with homebrew as trusted
+* Install postgresql@18 instead of 14
+* asdf installs now compatible with asdf >= 16
+* Removes 5 small things that were adding time/complexity to the installs that
+  were all originally added as workarounds for transient issues with other
+  software 5+ years ago.
+  * No longer need to `brew update --force` https://github.com/Homebrew/brew/issues/1151
+  * Remove the tap of `thoughtbot/formulae`
+  * Remove the installation of poppler
+  * Remove the relinking of the heroku binary
+  * No longer need to `gem update --system`
+* [#659](https://github.com/thoughtbot/laptop/issues/659) Fix deprecated bundler syntax
+
+## 2025-07-09
+
+* Removed deprecated homebrew/services tap
+
+## 2025-06-25
+
+* asdf is now updated if it is already installed and asdf commands were updated
+  to work with latest versions.
+
+## 2024-09-24
+
+* Support for macOS Sequoia
+
+## 2023-10-03
+
+### Added
+
+* Support for macOS Sonoma
+
+## 2022-12-02
+
+### Added
+
+* Support for macOS Ventura
+
+### Fixed
+
+* [The warning or failure when installing universal-ctags](https://github.com/thoughtbot/laptop/pull/623)
+* [The PostgreSQL Homebrew definition has been fixed](https://github.com/thoughtbot/laptop/pull/612)
+* [Return error code for failure sourcing asdf.sh](https://github.com/thoughtbot/laptop/pull/620)
+* [Fix for location change of asdf.sh](https://github.com/thoughtbot/laptop/pull/622)
+
+## 2022-03-30
+
+### Changed
+
+* Official support for macOS Monterey on Apple Silicon and Intel and removes official support for prior versions of macOS.
+* [Use brew asdk, changes for latest node](https://github.com/thoughtbot/laptop/pull/608)
+* [Ignore shellcheck warning SC3043 globally](https://github.com/thoughtbot/laptop/pull/606)
+* [Use gpg-suite-no-mail](https://github.com/thoughtbot/laptop/pull/607)
+* [Update ctags installation command](https://github.com/thoughtbot/laptop/pull/586)
+
+## 2023-04-24
+
+### Changed
+
+* [Adds Rosetta 2 in case a macbook has M1 architecture](https://github.com/thoughtbot/laptop/pull/628)

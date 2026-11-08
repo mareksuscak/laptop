@@ -72,7 +72,7 @@ Unix tools:
 * [Git] for version control
 * [OpenSSL] for Transport Layer Security (TLS)
 * [RCM] for managing company and personal dotfiles
-* [The Silver Searcher] for finding things in files
+* [ripgrep] for finding things in files
 * [Tmux] for saving project state and switching between projects
 * [Watchman] for watching for filesystem events
 * [Zsh] as your shell
@@ -82,7 +82,7 @@ Unix tools:
 [Git]: https://git-scm.com/
 [OpenSSL]: https://www.openssl.org/
 [RCM]: https://github.com/thoughtbot/rcm
-[The Silver Searcher]: https://github.com/ggreer/the_silver_searcher
+[ripgrep]: https://github.com/BurntSushi/ripgrep
 [Tmux]: http://tmux.github.io/
 [Watchman]: https://facebook.github.io/watchman/
 [Zsh]: http://www.zsh.org/
